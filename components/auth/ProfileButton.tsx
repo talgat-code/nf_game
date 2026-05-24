@@ -62,6 +62,13 @@ export function ProfileButton() {
               ► Profile & stats
             </Link>
             <Link
+              href="/map"
+              onClick={() => setDropdown(false)}
+              className="block px-4 py-2 text-text text-sm hover:bg-surface-2 hover:text-neon-amber border-b border-surface-2"
+            >
+              &gt; Run map
+            </Link>
+            <Link
               href="/class-select"
               onClick={() => setDropdown(false)}
               className="block px-4 py-2 text-text text-sm hover:bg-surface-2 hover:text-neon-green border-b border-surface-2"

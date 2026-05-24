@@ -2,11 +2,20 @@
 
 const STATS_PREFIX = "cc_stats_v1__";
 
+export interface ChallengeClear {
+  classId: string;
+  bossId: string;
+  challengeId: string;
+  attempts: number;
+  clearedAt: number;
+}
+
 export interface UserStats {
   totalSubmits: number;
   totalCorrect: number;
   totalWrong: number;
   challengesCleared: number;
+  challengeClears: ChallengeClear[];
   bossesDefeated: string[]; // boss ids
   runsStarted: number;
   runsWon: number;
@@ -22,6 +31,7 @@ function emptyStats(): UserStats {
     totalCorrect: 0,
     totalWrong: 0,
     challengesCleared: 0,
+    challengeClears: [],
     bossesDefeated: [],
     runsStarted: 0,
     runsWon: 0,
@@ -60,8 +70,39 @@ export function recordSubmit(username: string, passed: boolean) {
     totalSubmits: s.totalSubmits + 1,
     totalCorrect: passed ? s.totalCorrect + 1 : s.totalCorrect,
     totalWrong: passed ? s.totalWrong : s.totalWrong + 1,
-    challengesCleared: passed ? s.challengesCleared + 1 : s.challengesCleared,
   }));
+}
+
+export function recordChallengeClear(
+  username: string,
+  clear: Omit<ChallengeClear, "clearedAt">,
+) {
+  update(username, (s) => {
+    const clearKey = `${clear.bossId}:${clear.challengeId}`;
+    const existing = s.challengeClears.find(
+      (item) => `${item.bossId}:${item.challengeId}` === clearKey,
+    );
+
+    if (existing) {
+      return {
+        ...s,
+        challengeClears: s.challengeClears.map((item) =>
+          `${item.bossId}:${item.challengeId}` === clearKey
+            ? {
+                ...item,
+                attempts: Math.min(item.attempts || clear.attempts, clear.attempts),
+              }
+            : item,
+        ),
+      };
+    }
+
+    return {
+      ...s,
+      challengesCleared: s.challengesCleared + 1,
+      challengeClears: [...s.challengeClears, { ...clear, clearedAt: Date.now() }],
+    };
+  });
 }
 
 export function recordRunStart(username: string, classId: string) {

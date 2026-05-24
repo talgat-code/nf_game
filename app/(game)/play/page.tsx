@@ -15,6 +15,7 @@ import { getBossForClass } from "@/lib/challenges/list";
 import { runJsInSandbox } from "@/lib/js-runner";
 import {
   recordBossDefeat,
+  recordChallengeClear,
   recordRunLost,
   recordRunStart,
   recordSubmit,
@@ -112,6 +113,7 @@ function PlayPageInner() {
   const [playerHp, setPlayerHp] = useState(PLAYER_MAX_HP);
   const [phase, setPhase] = useState<Phase>("fighting");
   const [attempts, setAttempts] = useState(0);
+  const [challengeAttempts, setChallengeAttempts] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
   const [rightTab, setRightTab] = useState<RightTab>("boss");
@@ -145,11 +147,23 @@ function PlayPageInner() {
       error: sandboxResult.error,
       runtimeMs: sandboxResult.runtimeMs,
     };
+    const nextAttempts = attempts + 1;
+    const nextChallengeAttempts = challengeAttempts + 1;
     setResponse(data);
-    setAttempts((a) => a + 1);
+    setAttempts(nextAttempts);
+    setChallengeAttempts(nextChallengeAttempts);
     if (username) recordSubmit(username, data.passed);
 
     if (data.passed) {
+      if (username) {
+        recordChallengeClear(username, {
+          classId: boss.classId,
+          bossId: boss.id,
+          challengeId: challenge.id,
+          attempts: nextChallengeAttempts,
+        });
+      }
+
       const newBossHp = Math.max(0, bossHp - damagePerHit);
       setBossHp(newBossHp);
 
@@ -171,6 +185,7 @@ function PlayPageInner() {
           setCode(boss.challenges[nextIdx].starterCode);
           setResponse(null);
           setShowHint(false);
+          setChallengeAttempts(0);
         } else {
           setPhase("won");
         }

@@ -166,6 +166,12 @@ export default function ProfilePage() {
       {/* Actions */}
       <section className="flex gap-3 mt-12">
         <Link
+          href="/map"
+          className="border border-neon-amber px-6 py-2 text-neon-amber text-sm tracking-widest uppercase font-bold hover:bg-neon-amber hover:text-void transition-colors"
+        >
+          &gt; Run map
+        </Link>
+        <Link
           href="/class-select"
           className="border border-neon-green px-6 py-2 text-neon-green text-sm tracking-widest uppercase font-bold hover:bg-neon-green hover:text-void transition-colors"
         >

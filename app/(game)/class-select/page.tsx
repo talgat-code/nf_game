@@ -9,6 +9,7 @@ const CLASSES = [
     weakness: "Algorithm bosses",
     firstBoss: "Null Pointer Wraith",
     bossImg: "/sprites/null-pointer-wraith.png",
+    bossPosition: "center 8%",
     accent: "text-neon-cyan",
     border: "border-neon-cyan",
   },
@@ -20,6 +21,7 @@ const CLASSES = [
     weakness: "UI-flavored bosses",
     firstBoss: "Memory Leak Demon",
     bossImg: "/sprites/memory-leak-demon.png",
+    bossPosition: "center 8%",
     accent: "text-neon-green",
     border: "border-neon-green",
   },
@@ -31,6 +33,7 @@ const CLASSES = [
     weakness: "High-level bosses",
     firstBoss: "Stack Overflow // Exception King",
     bossImg: "/sprites/exception-king.png",
+    bossPosition: "center top",
     accent: "text-neon-magenta",
     border: "border-neon-magenta",
   },
@@ -64,7 +67,7 @@ export default function ClassSelectPage() {
                 src={cls.bossImg}
                 alt={cls.firstBoss}
                 className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
-                style={{ objectPosition: "center 20%" }}
+                style={{ objectPosition: cls.bossPosition }}
               />
               <div
                 aria-hidden
