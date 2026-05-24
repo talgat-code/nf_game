@@ -1,9 +1,16 @@
 "use client";
 
-import MonacoEditor, { type OnMount } from "@monaco-editor/react";
+import MonacoEditor, { loader, type OnMount } from "@monaco-editor/react";
 import { useCallback, useRef } from "react";
 import { CYBERPUNK_THEME_ID, cyberpunkTheme } from "@/lib/monaco-theme";
 import { cn } from "@/lib/utils";
+
+// Load Monaco from CDN — avoids worker bundling issues in Next.js App Router
+loader.config({
+  paths: {
+    vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs",
+  },
+});
 
 export type SupportedLanguage =
   | "javascript"
@@ -31,12 +38,10 @@ export function Editor({
 
   const handleMount: OnMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
-
     monaco.editor.defineTheme(CYBERPUNK_THEME_ID, cyberpunkTheme);
     monaco.editor.setTheme(CYBERPUNK_THEME_ID);
-
     editor.updateOptions({
-      fontFamily: "JetBrains Mono, Consolas, monospace",
+      fontFamily: "'JetBrains Mono', Consolas, monospace",
       fontSize: 14,
       lineHeight: 22,
       fontLigatures: true,
@@ -47,13 +52,12 @@ export function Editor({
   return (
     <div
       className={cn(
-        "relative overflow-hidden border border-text-dim",
+        "relative overflow-hidden border border-surface-2",
         "focus-within:border-neon-cyan transition-colors duration-200",
         className,
       )}
     >
-      {/* Language badge */}
-      <div className="absolute right-3 top-2 z-10 text-xs text-text-dim font-hud tracking-widest uppercase select-none">
+      <div className="absolute right-3 top-2 z-10 text-xs text-text-dim font-hud tracking-widest uppercase select-none pointer-events-none">
         {language}
       </div>
 
@@ -89,8 +93,8 @@ export function Editor({
           padding: { top: 16, bottom: 16 },
         }}
         loading={
-          <div className="flex h-full items-center justify-center text-text-muted text-xs tracking-widest">
-            LOADING EDITOR...
+          <div className="flex h-full items-center justify-center bg-surface text-neon-cyan text-xs tracking-widest font-hud">
+            INITIALIZING EDITOR...
           </div>
         }
       />
