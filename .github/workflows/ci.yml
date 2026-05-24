@@ -28,13 +28,13 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Typecheck
-        run: pnpm type-check
+        run: pnpm exec tsc --noEmit
 
       - name: Lint
-        run: pnpm lint
+        run: pnpm exec biome lint .
 
       - name: Build
         run: pnpm build
