@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, VT323 } from "next/font/google";
 import { CRTOverlay } from "@/components/effects/CRTOverlay";
+import { PostHogProvider } from "@/components/PostHogProvider";
 import "./globals.css";
 
 const jetbrainsMono = JetBrains_Mono({
@@ -30,8 +31,10 @@ export default function RootLayout({
       <body
         className={`${jetbrainsMono.variable} ${vt323.variable} crt-flicker bg-void text-text`}
       >
-        <CRTOverlay />
-        {children}
+        <PostHogProvider>
+          <CRTOverlay />
+          {children}
+        </PostHogProvider>
       </body>
     </html>
   );
