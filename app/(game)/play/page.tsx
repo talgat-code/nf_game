@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { Editor } from "@/components/game/Editor";
+import { BossPanel } from "@/components/game/BossPanel";
 import { GlitchText } from "@/components/effects/GlitchText";
 import type { ExecuteResponse, TestResult } from "@/lib/types";
 
@@ -36,37 +38,30 @@ const DAMAGE_ON_BOSS = 35;
 type Phase = "fighting" | "won" | "lost";
 type SubmitState = "idle" | "running";
 
-// ─── HP bar ───────────────────────────────────────────────────────────────────
-function HPBar({
-  current,
-  max,
-  color,
-  label,
-}: {
-  current: number;
-  max: number;
-  color: string;
-  label: string;
-}) {
-  const pct = Math.max(0, Math.min(100, (current / max) * 100));
-  const blocks = Math.round(pct / 10);
+// ─── Player HP bar ────────────────────────────────────────────────────────────
+function PlayerHPBar({ hp, max }: { hp: number; max: number }) {
+  const pct = Math.max(0, (hp / max) * 100);
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-text-muted text-xs font-hud tracking-widest w-24 shrink-0">
-        {label}
-      </span>
-      <div className="flex gap-px border border-surface-2 p-px">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-3 w-4 transition-colors duration-300"
-            style={{ backgroundColor: i < blocks ? color : "#353560" }}
-          />
-        ))}
+    <div className="px-4 py-2 bg-surface border border-surface-2">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-text-muted text-xs font-hud tracking-widest uppercase">
+          ► You
+        </span>
+        <span className="text-neon-cyan text-sm font-hud font-bold tabular-nums">
+          {hp} / {max}
+        </span>
       </div>
-      <span className="text-sm font-hud tabular-nums w-16" style={{ color }}>
-        {current}/{max}
-      </span>
+      <div className="h-2 bg-void border border-surface-3 overflow-hidden">
+        <motion.div
+          className="h-full"
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.4 }}
+          style={{
+            background: "linear-gradient(90deg, #00f0ff 0%, #00ddee 100%)",
+            boxShadow: "0 0 8px #00f0ff",
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -92,7 +87,6 @@ function TestRow({ result, idx }: { result: TestResult; idx: number }) {
   );
 }
 
-// ─── Test case preview (before submit) ────────────────────────────────────────
 function TestPreview({ tc, idx }: { tc: { input: string; expected: string }; idx: number }) {
   return (
     <div className="flex items-center gap-3 px-3 py-1 text-xs font-mono text-text-muted">
@@ -114,6 +108,7 @@ export default function PlayPage() {
   const [phase, setPhase] = useState<Phase>("fighting");
   const [attempts, setAttempts] = useState(0);
   const [showHint, setShowHint] = useState(false);
+  const [screenShake, setScreenShake] = useState(false);
 
   async function handleSubmit() {
     if (state === "running" || phase !== "fighting") return;
@@ -137,8 +132,12 @@ export default function PlayPage() {
       if (data.passed) {
         const newBossHp = Math.max(0, bossHp - DAMAGE_ON_BOSS);
         setBossHp(newBossHp);
-        if (newBossHp <= 0) setPhase("won");
+        if (newBossHp <= 0) {
+          setTimeout(() => setPhase("won"), 2000);
+        }
       } else {
+        setScreenShake(true);
+        setTimeout(() => setScreenShake(false), 400);
         const newPlayerHp = Math.max(0, playerHp - DAMAGE_ON_WRONG);
         setPlayerHp(newPlayerHp);
         if (newPlayerHp <= 0) setPhase("lost");
@@ -169,7 +168,6 @@ export default function PlayPage() {
     );
   }
 
-  // ─── Game over screen ───────────────────────────────────────────────────────
   if (phase === "lost") {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
@@ -189,38 +187,45 @@ export default function PlayPage() {
 
   // ─── Fight screen ───────────────────────────────────────────────────────────
   return (
-    <main className="flex min-h-screen flex-col">
+    <motion.main
+      animate={
+        screenShake
+          ? { x: [0, -8, 10, -6, 4, 0] }
+          : {}
+      }
+      transition={{ duration: 0.4 }}
+      className="flex min-h-screen flex-col"
+    >
       {/* HUD */}
       <header className="flex items-center justify-between border-b border-surface-2 bg-surface px-6 py-3">
         <GlitchText
           as="h1"
-          text={BOSS.name}
-          className="text-xl text-neon-magenta text-glow-magenta"
+          text="CODE CRUSADERS"
+          className="text-lg text-neon-cyan text-glow-cyan"
         />
-        <div className="flex flex-col gap-1 items-end">
-          <HPBar label="BOSS HP" current={bossHp} max={BOSS.maxHp} color="#ff3dbb" />
-          <HPBar label="PLAYER HP" current={playerHp} max={PLAYER_MAX_HP} color="#00f0ff" />
+        <div className="text-text-muted text-xs font-hud tracking-widest">
+          ATTEMPT {attempts || 0} · {state === "running" ? "EXECUTING..." : phase.toUpperCase()}
         </div>
       </header>
 
-      {/* Main: two columns (left = challenge info, right = editor) */}
-      <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-0 flex-1">
-        {/* ── Left: challenge info panel ───────────────────────────────── */}
+      {/* Main: three-section grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr_360px] gap-0 flex-1">
+        {/* ── LEFT: Challenge info ────────────────────────────────────── */}
         <aside className="border-r border-surface-2 bg-surface flex flex-col">
-          <div className="p-5 border-b border-surface-2">
+          <div className="p-4 border-b border-surface-2">
             <p className="text-neon-amber text-xs font-hud tracking-widest uppercase">
               ► Challenge
             </p>
-            <h2 className="text-neon-cyan text-lg mt-1 font-bold tracking-wider">
+            <h2 className="text-neon-cyan text-base mt-1 font-bold tracking-wider">
               {CHALLENGE.title}
             </h2>
           </div>
 
-          <div className="p-5 border-b border-surface-2">
+          <div className="p-4 border-b border-surface-2">
             <p className="text-text text-sm leading-relaxed">{CHALLENGE.prompt}</p>
           </div>
 
-          <div className="p-5 border-b border-surface-2">
+          <div className="p-4 border-b border-surface-2">
             <p className="text-text-muted text-xs font-hud tracking-widest uppercase mb-2">
               ► Test cases ({CHALLENGE.testCases.length})
             </p>
@@ -231,7 +236,7 @@ export default function PlayPage() {
             </div>
           </div>
 
-          <div className="p-5 border-b border-surface-2">
+          <div className="p-4 border-b border-surface-2">
             <button
               type="button"
               onClick={() => setShowHint(!showHint)}
@@ -246,24 +251,18 @@ export default function PlayPage() {
             )}
           </div>
 
-          <div className="p-5 mt-auto">
-            <p className="text-text-dim text-xs font-hud tracking-widest uppercase">
-              ► Stats
-            </p>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-              <div className="text-text-muted">Attempts</div>
-              <div className="text-neon-cyan font-hud text-right">{attempts}</div>
+          <div className="p-4 mt-auto">
+            <div className="grid grid-cols-2 gap-1 text-xs">
               <div className="text-text-muted">Damage / hit</div>
-              <div className="text-neon-green font-hud text-right">{DAMAGE_ON_BOSS}</div>
+              <div className="text-neon-green font-hud text-right">+{DAMAGE_ON_BOSS}</div>
               <div className="text-text-muted">Penalty / miss</div>
               <div className="text-neon-magenta font-hud text-right">−{DAMAGE_ON_WRONG}</div>
             </div>
           </div>
         </aside>
 
-        {/* ── Right: editor + terminal ─────────────────────────────────── */}
+        {/* ── CENTER: Editor + Terminal ───────────────────────────────── */}
         <section className="flex flex-col bg-void min-w-0">
-          {/* Editor */}
           <div className="border-b border-surface-2">
             <div className="flex items-center justify-between px-4 py-2 bg-surface border-b border-surface-2">
               <span className="text-text-muted text-xs font-hud tracking-widest uppercase">
@@ -282,8 +281,7 @@ export default function PlayPage() {
             />
           </div>
 
-          {/* Terminal */}
-          <div className="flex-1 bg-void min-h-[200px]">
+          <div className="flex-1 bg-void min-h-[180px]">
             <div className="flex items-center justify-between px-4 py-2 bg-surface border-b border-surface-2">
               <span className="text-text-muted text-xs font-hud tracking-widest uppercase">
                 ► terminal
@@ -295,7 +293,7 @@ export default function PlayPage() {
                   }`}
                 >
                   {response.error
-                    ? `ERROR`
+                    ? "ERROR"
                     : `${response.results.filter((r) => r.passed).length}/${response.results.length} PASSED${response.runtimeMs ? ` · ${response.runtimeMs}ms` : ""}`}
                 </span>
               )}
@@ -304,7 +302,7 @@ export default function PlayPage() {
               {!response && (
                 <p className="text-text-dim">
                   {state === "running"
-                    ? "$ executing solution.js..."
+                    ? "$ executing solution.js in sandbox..."
                     : "$ waiting for input — press SUBMIT to run tests"}
                 </p>
               )}
@@ -317,6 +315,17 @@ export default function PlayPage() {
             </div>
           </div>
         </section>
+
+        {/* ── RIGHT: Boss panel + Player HP ───────────────────────────── */}
+        <aside className="border-l border-surface-2 bg-surface flex flex-col gap-3 p-3">
+          <BossPanel
+            name={BOSS.name}
+            hp={bossHp}
+            maxHp={BOSS.maxHp}
+            className="flex-1 min-h-[400px]"
+          />
+          <PlayerHPBar hp={playerHp} max={PLAYER_MAX_HP} />
+        </aside>
       </div>
 
       {/* Action bar */}
@@ -337,6 +346,6 @@ export default function PlayPage() {
           {state === "running" ? "Running..." : "Submit ↵"}
         </button>
       </footer>
-    </main>
+    </motion.main>
   );
 }
