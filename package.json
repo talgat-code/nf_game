@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
+    "@monaco-editor/react": "^4.7.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",
+    "monaco-editor": "^0.55.1",
     "next": "15.5.18",
     "posthog-js": "^1.376.0",
     "react": "19.1.0",
