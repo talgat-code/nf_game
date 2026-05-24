@@ -87,7 +87,7 @@ function parseOutput(stdout: string, testCases: TestCase[]): TestResult[] {
   const lines = stdout.split("\n").filter(Boolean);
   return testCases.map((tc, i) => {
     const line = lines[i] ?? "";
-    const [status, expected, actual] = line.split(":");
+    const [status, , actual] = line.split(":");
     return {
       input: tc.input,
       expected: tc.expected,

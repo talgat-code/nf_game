@@ -2,13 +2,14 @@
 
 /* ─── Cyberpunk design tokens ─────────────────────────────────────────── */
 @theme inline {
-  /* Base palette */
-  --color-void:         #0a0a0f;
-  --color-surface:      #0f0f1a;
-  --color-surface-2:    #1a1a2e;
+  /* Base palette — lighter than v1 for readability */
+  --color-void:         #16162a;
+  --color-surface:      #1f1f3a;
+  --color-surface-2:    #2a2a4a;
+  --color-surface-3:    #353560;
 
   /* Neon accents */
-  --color-neon-magenta: #ff00aa;
+  --color-neon-magenta: #ff3dbb;
   --color-neon-cyan:    #00f0ff;
   --color-neon-green:   #00ff88;
   --color-neon-amber:   #ffaa00;
@@ -19,10 +20,10 @@
   --color-success:      var(--color-neon-green);
   --color-warning:      var(--color-neon-amber);
 
-  /* Text */
-  --color-text:         #e8e8f8;
-  --color-text-muted:   #8080b0;
-  --color-text-dim:     #404070;
+  /* Text — high contrast */
+  --color-text:         #f0f0ff;
+  --color-text-muted:   #a0a0d0;
+  --color-text-dim:     #707090;
 
   /* Fonts — variables set by next/font in layout.tsx */
   --font-mono:  var(--font-jetbrains), "Courier New", monospace;
@@ -31,14 +32,9 @@
 
   /* Glow shadows */
   --shadow-cyan:    0 0 8px #00f0ff80, 0 0 20px #00f0ff40;
-  --shadow-magenta: 0 0 8px #ff00aa80, 0 0 20px #ff00aa40;
+  --shadow-magenta: 0 0 8px #ff3dbb80, 0 0 20px #ff3dbb40;
   --shadow-green:   0 0 8px #00ff8880, 0 0 20px #00ff8840;
   --shadow-amber:   0 0 8px #ffaa0080, 0 0 20px #ffaa0040;
-
-  /* Animation durations */
-  --duration-glitch: 150ms;
-  --duration-fast:   200ms;
-  --duration-normal: 350ms;
 }
 
 /* ─── Base reset ──────────────────────────────────────────────────────── */
@@ -57,24 +53,27 @@
 
 html,
 body {
-  height: 100%;
+  min-height: 100%;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 /* ─── Scrollbar ───────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: var(--color-surface);
 }
 ::-webkit-scrollbar-thumb {
+  background: var(--color-surface-3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
   background: var(--color-neon-cyan);
-  border-radius: 3px;
 }
 
 /* ─── Selection ───────────────────────────────────────────────────────── */

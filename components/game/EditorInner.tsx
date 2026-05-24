@@ -35,6 +35,9 @@ export function EditorInner({
       lineHeight: 22,
       letterSpacing: 0.5,
     });
+    // Signal to the parent wrapper that Monaco mounted successfully
+    // @ts-expect-error — global flag used by Editor.tsx for fallback timer
+    window.__MONACO_LOADED__ = true;
   }, []);
 
   return (

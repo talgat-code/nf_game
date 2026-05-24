@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignore": ["node_modules", ".next", "dist", "build"]
+    "includes": ["**", "!node_modules", "!.next", "!dist", "!build", "!**/*.d.ts", "!**/*.css"]
   },
   "formatter": {
     "enabled": true,
@@ -21,6 +21,15 @@
       "correctness": {
         "noUnusedVariables": "warn",
         "noUnusedImports": "warn"
+      },
+      "suspicious": {
+        "noArrayIndexKey": "off"
+      },
+      "complexity": {
+        "noImportantStyles": "off"
+      },
+      "style": {
+        "useImportType": "off"
       }
     }
   },
@@ -31,7 +40,16 @@
       "semicolons": "always"
     }
   },
-  "organizeImports": {
-    "enabled": true
+  "css": {
+    "parser": {
+      "cssModules": true
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   }
 }
