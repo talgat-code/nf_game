@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+/* ─── Cyberpunk design tokens ─────────────────────────────────────────── */
+@theme inline {
+  /* Base palette */
+  --color-void:         #0a0a0f;
+  --color-surface:      #0f0f1a;
+  --color-surface-2:    #1a1a2e;
+
+  /* Neon accents */
+  --color-neon-magenta: #ff00aa;
+  --color-neon-cyan:    #00f0ff;
+  --color-neon-green:   #00ff88;
+  --color-neon-amber:   #ffaa00;
+
+  /* Semantic aliases */
+  --color-primary:      var(--color-neon-cyan);
+  --color-danger:       var(--color-neon-magenta);
+  --color-success:      var(--color-neon-green);
+  --color-warning:      var(--color-neon-amber);
+
+  /* Text */
+  --color-text:         #e0e0f0;
+  --color-text-muted:   #6060a0;
+  --color-text-dim:     #30305a;
+
+  /* Fonts — variables set by next/font in layout.tsx */
+  --font-mono:  var(--font-jetbrains), "Courier New", monospace;
+  --font-hud:   var(--font-vt323), monospace;
+  --font-sans:  var(--font-jetbrains), monospace;
+
+  /* Glow shadows */
+  --shadow-cyan:    0 0 8px #00f0ff80, 0 0 20px #00f0ff40;
+  --shadow-magenta: 0 0 8px #ff00aa80, 0 0 20px #ff00aa40;
+  --shadow-green:   0 0 8px #00ff8880, 0 0 20px #00ff8840;
+  --shadow-amber:   0 0 8px #ffaa0080, 0 0 20px #ffaa0040;
+
+  /* Animation durations */
+  --duration-glitch: 150ms;
+  --duration-fast:   200ms;
+  --duration-normal: 350ms;
+}
+
+/* ─── Base reset ──────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+  font-family: var(--font-mono);
+  background-color: var(--color-void);
+  color: var(--color-text);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-neon-cyan);
+  border-radius: 3px;
+}
+
+/* ─── Selection ───────────────────────────────────────────────────────── */
+::selection {
+  background: var(--color-neon-cyan);
+  color: var(--color-void);
+}
+
+/* ─── Focus ring ──────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-neon-cyan);
+  outline-offset: 2px;
+}
+
+/* ─── Neon text utilities ─────────────────────────────────────────────── */
+.text-glow-cyan    { text-shadow: var(--shadow-cyan); }
+.text-glow-magenta { text-shadow: var(--shadow-magenta); }
+.text-glow-green   { text-shadow: var(--shadow-green); }
+.text-glow-amber   { text-shadow: var(--shadow-amber); }
+
+/* ─── Reduced-motion accessibility override ───────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
