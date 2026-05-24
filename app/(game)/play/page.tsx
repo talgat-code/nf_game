@@ -1,43 +1,27 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { Editor } from "@/components/game/Editor";
-import { BossPanel } from "@/components/game/BossPanel";
+import { useState } from "react";
 import { GlitchText } from "@/components/effects/GlitchText";
+import { BossPanel } from "@/components/game/BossPanel";
+import { CodeExplanation } from "@/components/game/CodeExplanation";
+import { Editor } from "@/components/game/Editor";
+import { MusicPlayer } from "@/components/game/MusicPlayer";
+import { WRAITH_CHALLENGES } from "@/lib/challenges/list";
 import { runJsInSandbox } from "@/lib/js-runner";
 import type { ExecuteResponse, TestResult } from "@/lib/types";
 
-// ─── Challenge definition ─────────────────────────────────────────────────────
-const CHALLENGE = {
-  title: "ARRAY TRAVERSAL: NULL-PATCHED",
-  prompt:
-    "The Wraith has poisoned your loop bounds. The function should return the sum of all numbers in the array, but it overruns the end and reads garbage.",
-  hint: "Look carefully at the loop condition. What's the last valid index of an array of length n?",
-  starterCode: `// Fix the bug: return the sum of all numbers in the array.
-function solution(nums) {
-  let total = 0;
-  for (let i = 0; i <= nums.length; i++) {
-    total += nums[i];
-  }
-  return total;
-}`,
-  testCases: [
-    { input: "[1, 2, 3]", expected: "6" },
-    { input: "[0]", expected: "0" },
-    { input: "[-1, 1]", expected: "0" },
-    { input: "[10, 20, 30]", expected: "60" },
-    { input: "[100]", expected: "100" },
-  ],
-};
-
-const BOSS = { name: "NULL POINTER WRAITH", maxHp: 100, startHp: 100 };
+const BOSS = { name: "NULL POINTER WRAITH" };
 const PLAYER_MAX_HP = 100;
 const DAMAGE_ON_WRONG = 20;
-const DAMAGE_ON_BOSS = 35;
+// Damage per correct solution scales so BOSS dies after all challenges
+const TOTAL_CHALLENGES = WRAITH_CHALLENGES.length;
+const BOSS_MAX_HP = 100;
+const DAMAGE_PER_HIT = Math.ceil(BOSS_MAX_HP / TOTAL_CHALLENGES);
 
 type Phase = "fighting" | "won" | "lost";
 type SubmitState = "idle" | "running";
+type RightTab = "boss" | "explain";
 
 // ─── Player HP bar ────────────────────────────────────────────────────────────
 function PlayerHPBar({ hp, max }: { hp: number; max: number }) {
@@ -45,9 +29,7 @@ function PlayerHPBar({ hp, max }: { hp: number; max: number }) {
   return (
     <div className="px-4 py-2 bg-surface border border-surface-2">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-text-muted text-xs font-hud tracking-widest uppercase">
-          ► You
-        </span>
+        <span className="text-text-muted text-xs font-hud tracking-widest uppercase">► You</span>
         <span className="text-neon-cyan text-sm font-hud font-bold tabular-nums">
           {hp} / {max}
         </span>
@@ -81,9 +63,7 @@ function TestRow({ result, idx }: { result: TestResult; idx: number }) {
       <span className="w-12">{result.passed ? "✓ PASS" : "✗ FAIL"}</span>
       <span className="text-text-muted">in={result.input}</span>
       <span className="text-text">→ {result.actual || "(empty)"}</span>
-      {!result.passed && (
-        <span className="text-text-muted ml-auto">want={result.expected}</span>
-      )}
+      {!result.passed && <span className="text-text-muted ml-auto">want={result.expected}</span>}
     </div>
   );
 }
@@ -101,22 +81,25 @@ function TestPreview({ tc, idx }: { tc: { input: string; expected: string }; idx
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function PlayPage() {
-  const [code, setCode] = useState(CHALLENGE.starterCode);
+  const [challengeIdx, setChallengeIdx] = useState(0);
+  const challenge = WRAITH_CHALLENGES[challengeIdx];
+  const [code, setCode] = useState(challenge.starterCode);
   const [state, setState] = useState<SubmitState>("idle");
   const [response, setResponse] = useState<ExecuteResponse | null>(null);
-  const [bossHp, setBossHp] = useState(BOSS.startHp);
+  const [bossHp, setBossHp] = useState(BOSS_MAX_HP);
   const [playerHp, setPlayerHp] = useState(PLAYER_MAX_HP);
   const [phase, setPhase] = useState<Phase>("fighting");
   const [attempts, setAttempts] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
+  const [rightTab, setRightTab] = useState<RightTab>("boss");
 
   async function handleSubmit() {
     if (state === "running" || phase !== "fighting") return;
     setState("running");
     setResponse(null);
 
-    const sandboxResult = await runJsInSandbox(code, CHALLENGE.testCases);
+    const sandboxResult = await runJsInSandbox(code, challenge.testCases);
     const data: ExecuteResponse = {
       passed: sandboxResult.ok && sandboxResult.results.every((r) => r.passed),
       results: sandboxResult.results,
@@ -127,11 +110,24 @@ export default function PlayPage() {
     setAttempts((a) => a + 1);
 
     if (data.passed) {
-      const newBossHp = Math.max(0, bossHp - DAMAGE_ON_BOSS);
+      const newBossHp = Math.max(0, bossHp - DAMAGE_PER_HIT);
       setBossHp(newBossHp);
-      if (newBossHp <= 0) {
-        setTimeout(() => setPhase("won"), 2000);
-      }
+
+      // Advance to next challenge after a beat
+      setTimeout(() => {
+        if (newBossHp <= 0) {
+          setPhase("won");
+        } else if (challengeIdx < TOTAL_CHALLENGES - 1) {
+          const nextIdx = challengeIdx + 1;
+          setChallengeIdx(nextIdx);
+          setCode(WRAITH_CHALLENGES[nextIdx].starterCode);
+          setResponse(null);
+          setShowHint(false);
+        } else {
+          // Out of challenges but boss still alive → game over win (capped)
+          setPhase("won");
+        }
+      }, 2000);
     } else {
       setScreenShake(true);
       setTimeout(() => setScreenShake(false), 400);
@@ -147,10 +143,14 @@ export default function PlayPage() {
   if (phase === "won") {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
-        <GlitchText as="h1" text="BOSS DEFEATED" className="text-5xl text-neon-green text-glow-green" />
+        <GlitchText
+          as="h1"
+          text="BOSS DEFEATED"
+          className="text-5xl text-neon-green text-glow-green"
+        />
         <p className="text-text text-sm tracking-widest">
-          The Null Pointer Wraith collapses. Solved in{" "}
-          <span className="text-neon-green">{attempts}</span> attempt{attempts !== 1 ? "s" : ""}.
+          Cleared {challengeIdx + 1} challenge{challengeIdx !== 0 ? "s" : ""} in{" "}
+          <span className="text-neon-green">{attempts}</span> total attempts.
         </p>
         <a
           href="/class-select"
@@ -182,49 +182,53 @@ export default function PlayPage() {
   // ─── Fight screen ───────────────────────────────────────────────────────────
   return (
     <motion.main
-      animate={
-        screenShake
-          ? { x: [0, -8, 10, -6, 4, 0] }
-          : {}
-      }
+      animate={screenShake ? { x: [0, -8, 10, -6, 4, 0] } : {}}
       transition={{ duration: 0.4 }}
       className="flex min-h-screen flex-col"
     >
       {/* HUD */}
       <header className="flex items-center justify-between border-b border-surface-2 bg-surface px-6 py-3">
-        <GlitchText
-          as="h1"
-          text="CODE CRUSADERS"
-          className="text-lg text-neon-cyan text-glow-cyan"
-        />
-        <div className="text-text-muted text-xs font-hud tracking-widest">
-          ATTEMPT {attempts || 0} · {state === "running" ? "EXECUTING..." : phase.toUpperCase()}
+        <div className="flex items-center gap-4">
+          <GlitchText
+            as="h1"
+            text="CODE CRUSADERS"
+            className="text-lg text-neon-cyan text-glow-cyan"
+          />
+          <span className="text-text-dim text-xs font-hud tracking-widest">
+            CHALLENGE {challengeIdx + 1} / {TOTAL_CHALLENGES}
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <MusicPlayer />
+          <span className="text-text-muted text-xs font-hud tracking-widest">
+            ATTEMPT {attempts} · {state === "running" ? "EXECUTING..." : phase.toUpperCase()}
+          </span>
         </div>
       </header>
 
-      {/* Main: three-section grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr_360px] gap-0 flex-1">
+      {/* Main: three columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr_380px] gap-0 flex-1">
         {/* ── LEFT: Challenge info ────────────────────────────────────── */}
-        <aside className="border-r border-surface-2 bg-surface flex flex-col">
+        <aside className="border-r border-surface-2 bg-surface flex flex-col overflow-y-auto">
           <div className="p-4 border-b border-surface-2">
             <p className="text-neon-amber text-xs font-hud tracking-widest uppercase">
-              ► Challenge
+              ► Challenge {challengeIdx + 1}
             </p>
             <h2 className="text-neon-cyan text-base mt-1 font-bold tracking-wider">
-              {CHALLENGE.title}
+              {challenge.title}
             </h2>
           </div>
 
           <div className="p-4 border-b border-surface-2">
-            <p className="text-text text-sm leading-relaxed">{CHALLENGE.prompt}</p>
+            <p className="text-text text-sm leading-relaxed">{challenge.prompt}</p>
           </div>
 
           <div className="p-4 border-b border-surface-2">
             <p className="text-text-muted text-xs font-hud tracking-widest uppercase mb-2">
-              ► Test cases ({CHALLENGE.testCases.length})
+              ► Test cases ({challenge.testCases.length})
             </p>
             <div className="space-y-px bg-void border border-surface-2 py-2">
-              {CHALLENGE.testCases.map((tc, i) => (
+              {challenge.testCases.map((tc, i) => (
                 <TestPreview key={i} tc={tc} idx={i} />
               ))}
             </div>
@@ -240,7 +244,7 @@ export default function PlayPage() {
             </button>
             {showHint && (
               <p className="mt-2 text-text-muted text-sm leading-relaxed italic">
-                💡 {CHALLENGE.hint}
+                💡 {challenge.hint}
               </p>
             )}
           </div>
@@ -248,7 +252,7 @@ export default function PlayPage() {
           <div className="p-4 mt-auto">
             <div className="grid grid-cols-2 gap-1 text-xs">
               <div className="text-text-muted">Damage / hit</div>
-              <div className="text-neon-green font-hud text-right">+{DAMAGE_ON_BOSS}</div>
+              <div className="text-neon-green font-hud text-right">+{DAMAGE_PER_HIT}</div>
               <div className="text-text-muted">Penalty / miss</div>
               <div className="text-neon-magenta font-hud text-right">−{DAMAGE_ON_WRONG}</div>
             </div>
@@ -300,9 +304,7 @@ export default function PlayPage() {
                     : "$ waiting for input — press SUBMIT to run tests"}
                 </p>
               )}
-              {response?.error && (
-                <p className="text-neon-magenta">✗ {response.error}</p>
-              )}
+              {response?.error && <p className="text-neon-magenta">✗ {response.error}</p>}
               {response?.results.map((r, i) => (
                 <TestRow key={i} result={r} idx={i} />
               ))}
@@ -310,15 +312,54 @@ export default function PlayPage() {
           </div>
         </section>
 
-        {/* ── RIGHT: Boss panel + Player HP ───────────────────────────── */}
-        <aside className="border-l border-surface-2 bg-surface flex flex-col gap-3 p-3">
-          <BossPanel
-            name={BOSS.name}
-            hp={bossHp}
-            maxHp={BOSS.maxHp}
-            className="flex-1 min-h-[400px]"
-          />
-          <PlayerHPBar hp={playerHp} max={PLAYER_MAX_HP} />
+        {/* ── RIGHT: Tabs — Boss / Explain ───────────────────────────── */}
+        <aside className="border-l border-surface-2 bg-surface flex flex-col">
+          {/* Tab switcher */}
+          <div className="flex border-b border-surface-2">
+            <button
+              type="button"
+              onClick={() => setRightTab("boss")}
+              className={cn(
+                "flex-1 px-4 py-2 text-xs font-hud tracking-widest uppercase transition-colors",
+                rightTab === "boss"
+                  ? "bg-surface-2 text-neon-magenta border-b-2 border-neon-magenta"
+                  : "text-text-muted hover:text-text",
+              )}
+            >
+              ► Boss
+            </button>
+            <button
+              type="button"
+              onClick={() => setRightTab("explain")}
+              className={cn(
+                "flex-1 px-4 py-2 text-xs font-hud tracking-widest uppercase transition-colors",
+                rightTab === "explain"
+                  ? "bg-surface-2 text-neon-cyan border-b-2 border-neon-cyan"
+                  : "text-text-muted hover:text-text",
+              )}
+            >
+              ► Explain
+            </button>
+          </div>
+
+          {rightTab === "boss" ? (
+            <div className="flex flex-col gap-3 p-3 flex-1">
+              <BossPanel
+                name={BOSS.name}
+                hp={bossHp}
+                maxHp={BOSS_MAX_HP}
+                className="flex-1 min-h-[400px]"
+              />
+              <PlayerHPBar hp={playerHp} max={PLAYER_MAX_HP} />
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-3">
+              <p className="text-text-muted text-xs font-hud tracking-widest uppercase mb-2 px-2">
+                ► Line-by-line breakdown
+              </p>
+              <CodeExplanation code={code} explanations={challenge.explanations} />
+            </div>
+          )}
         </aside>
       </div>
 
@@ -342,4 +383,9 @@ export default function PlayPage() {
       </footer>
     </motion.main>
   );
+}
+
+// Local cn (avoid extra import in this file)
+function cn(...args: Array<string | false | null | undefined>) {
+  return args.filter(Boolean).join(" ");
 }
