@@ -58,19 +58,20 @@ export default function ClassSelectPage() {
             className={`group flex flex-col gap-3 border border-surface-2 bg-surface p-5 hover:${cls.border} hover:bg-surface-2 transition-all duration-200`}
           >
             {/* Boss preview */}
-            <div className="relative h-48 -mx-5 -mt-5 mb-2 bg-void border-b border-surface-2 overflow-hidden">
+            <div className="relative h-72 -mx-5 -mt-5 mb-2 bg-void border-b border-surface-2 overflow-hidden">
               {/* biome-ignore lint/performance/noImgElement: boss preview, optimized size not critical */}
               <img
                 src={cls.bossImg}
                 alt={cls.firstBoss}
-                className="absolute inset-0 w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity duration-300"
+                className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ objectPosition: "center 20%" }}
               />
               <div
                 aria-hidden
                 className="absolute inset-0 pointer-events-none"
                 style={{
                   background:
-                    "linear-gradient(180deg, transparent 40%, rgba(22,22,42,0.8) 100%)",
+                    "linear-gradient(180deg, transparent 55%, rgba(22,22,42,0.9) 100%)",
                 }}
               />
               <span className="absolute bottom-2 left-3 text-[10px] font-hud tracking-widest text-text-muted uppercase">
