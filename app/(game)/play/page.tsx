@@ -201,7 +201,7 @@ export default function PlayPage() {
 
   // ── Fight screen ──
   return (
-    <main className="flex min-h-screen flex-col gap-0">
+    <main className="flex min-h-screen flex-col">
       {/* ── HUD ── */}
       <header className="flex items-center justify-between border-b border-surface-2 bg-surface px-6 py-3">
         <GlitchText
@@ -246,42 +246,41 @@ export default function PlayPage() {
         )}
       </div>
 
-      {/* ── Editor + output ── */}
-      <div className="flex flex-1 flex-col gap-0 min-h-0">
-        <Editor
-          value={code}
-          onChange={setCode}
-          language="javascript"
-          className="flex-1 min-h-[300px]"
-        />
+      {/* ── Editor ── */}
+      <Editor
+        value={code}
+        onChange={setCode}
+        language="javascript"
+        height={500}
+        className="w-full"
+      />
 
-        {/* Terminal output */}
-        {response && (
-          <div className="border-t border-surface-2 bg-surface max-h-48 overflow-y-auto">
-            <div className="px-4 py-2 border-b border-surface-2">
-              <span className="text-xs font-hud tracking-widest text-text-muted uppercase">
-                Test Results ·{" "}
-              </span>
-              <span
-                className={`text-xs font-hud tracking-widest ${
-                  response.passed ? "text-neon-green" : "text-neon-magenta"
-                }`}
-              >
-                {response.passed
-                  ? `${response.results.length}/${response.results.length} PASSED · ${response.runtimeMs}ms`
-                  : response.error
-                    ? `ERROR: ${response.error}`
-                    : `${response.results.filter((r) => r.passed).length}/${response.results.length} PASSED`}
-              </span>
-            </div>
-            <div className="flex flex-col gap-px p-2">
-              {response.results.map((r, i) => (
-                <TestRow key={i} result={r} idx={i} />
-              ))}
-            </div>
+      {/* ── Terminal output ── */}
+      {response && (
+        <div className="border-t border-surface-2 bg-surface max-h-48 overflow-y-auto">
+          <div className="px-4 py-2 border-b border-surface-2">
+            <span className="text-xs font-hud tracking-widest text-text-muted uppercase">
+              Test Results ·{" "}
+            </span>
+            <span
+              className={`text-xs font-hud tracking-widest ${
+                response.passed ? "text-neon-green" : "text-neon-magenta"
+              }`}
+            >
+              {response.passed
+                ? `${response.results.length}/${response.results.length} PASSED · ${response.runtimeMs}ms`
+                : response.error
+                  ? `ERROR: ${response.error}`
+                  : `${response.results.filter((r) => r.passed).length}/${response.results.length} PASSED`}
+            </span>
           </div>
-        )}
-      </div>
+          <div className="flex flex-col gap-px p-2">
+            {response.results.map((r, i) => (
+              <TestRow key={i} result={r} idx={i} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Action bar ── */}
       <footer className="flex items-center justify-between border-t border-surface-2 bg-surface px-6 py-3">

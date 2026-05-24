@@ -1,13 +1,9 @@
 "use client";
 
-import MonacoEditor, { loader, type BeforeMount, type OnMount } from "@monaco-editor/react";
+import MonacoEditor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
 import { useCallback } from "react";
 import { CYBERPUNK_THEME_ID, cyberpunkTheme } from "@/lib/monaco-theme";
 import { cn } from "@/lib/utils";
-
-loader.config({
-  paths: { vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs" },
-});
 
 export type SupportedLanguage = "javascript" | "typescript" | "python" | "go" | "rust";
 
@@ -17,6 +13,7 @@ export interface EditorProps {
   language?: SupportedLanguage;
   readOnly?: boolean;
   className?: string;
+  height?: string | number;
 }
 
 export function EditorInner({
@@ -25,8 +22,8 @@ export function EditorInner({
   language = "javascript",
   readOnly = false,
   className,
+  height = "100%",
 }: EditorProps) {
-  // Define theme before editor mounts so it's available immediately
   const handleBeforeMount: BeforeMount = useCallback((monaco) => {
     monaco.editor.defineTheme(CYBERPUNK_THEME_ID, cyberpunkTheme);
   }, []);
@@ -38,8 +35,6 @@ export function EditorInner({
       lineHeight: 22,
       letterSpacing: 0.5,
     });
-    // Force focus so cursor appears
-    editor.focus();
   }, []);
 
   return (
@@ -55,7 +50,7 @@ export function EditorInner({
       </div>
 
       <MonacoEditor
-        height="100%"
+        height={height}
         language={language}
         theme={CYBERPUNK_THEME_ID}
         value={value}
@@ -84,7 +79,7 @@ export function EditorInner({
         }}
         loading={
           <div className="flex h-full min-h-[200px] items-center justify-center bg-surface text-neon-cyan text-xs tracking-widest font-hud">
-            INITIALIZING EDITOR...
+            INITIALIZING MONACO...
           </div>
         }
       />
