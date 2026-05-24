@@ -1,23 +1,20 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
 import { GlitchText } from "@/components/effects/GlitchText";
 import { BossPanel } from "@/components/game/BossPanel";
 import { CodeExplanation } from "@/components/game/CodeExplanation";
 import { Editor } from "@/components/game/Editor";
 import { MusicPlayer } from "@/components/game/MusicPlayer";
-import { WRAITH_CHALLENGES } from "@/lib/challenges/list";
+import { getBossForClass } from "@/lib/challenges/list";
 import { runJsInSandbox } from "@/lib/js-runner";
 import type { ExecuteResponse, TestResult } from "@/lib/types";
 
-const BOSS = { name: "NULL POINTER WRAITH" };
 const PLAYER_MAX_HP = 100;
 const DAMAGE_ON_WRONG = 20;
-// Damage per correct solution scales so BOSS dies after all challenges
-const TOTAL_CHALLENGES = WRAITH_CHALLENGES.length;
 const BOSS_MAX_HP = 100;
-const DAMAGE_PER_HIT = Math.ceil(BOSS_MAX_HP / TOTAL_CHALLENGES);
 
 type Phase = "fighting" | "won" | "lost";
 type SubmitState = "idle" | "running";
@@ -81,8 +78,22 @@ function TestPreview({ tc, idx }: { tc: { input: string; expected: string }; idx
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function PlayPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-void" />}>
+      <PlayPageInner />
+    </Suspense>
+  );
+}
+
+function PlayPageInner() {
+  const params = useSearchParams();
+  const classId = params.get("class");
+  const boss = useMemo(() => getBossForClass(classId), [classId]);
+  const totalChallenges = boss.challenges.length;
+  const damagePerHit = Math.ceil(BOSS_MAX_HP / totalChallenges);
+
   const [challengeIdx, setChallengeIdx] = useState(0);
-  const challenge = WRAITH_CHALLENGES[challengeIdx];
+  const challenge = boss.challenges[challengeIdx];
   const [code, setCode] = useState(challenge.starterCode);
   const [state, setState] = useState<SubmitState>("idle");
   const [response, setResponse] = useState<ExecuteResponse | null>(null);
@@ -110,21 +121,20 @@ export default function PlayPage() {
     setAttempts((a) => a + 1);
 
     if (data.passed) {
-      const newBossHp = Math.max(0, bossHp - DAMAGE_PER_HIT);
+      const newBossHp = Math.max(0, bossHp - damagePerHit);
       setBossHp(newBossHp);
 
       // Advance to next challenge after a beat
       setTimeout(() => {
         if (newBossHp <= 0) {
           setPhase("won");
-        } else if (challengeIdx < TOTAL_CHALLENGES - 1) {
+        } else if (challengeIdx < totalChallenges - 1) {
           const nextIdx = challengeIdx + 1;
           setChallengeIdx(nextIdx);
-          setCode(WRAITH_CHALLENGES[nextIdx].starterCode);
+          setCode(boss.challenges[nextIdx].starterCode);
           setResponse(null);
           setShowHint(false);
         } else {
-          // Out of challenges but boss still alive → game over win (capped)
           setPhase("won");
         }
       }, 2000);
@@ -145,8 +155,8 @@ export default function PlayPage() {
       <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
         <GlitchText
           as="h1"
-          text="BOSS DEFEATED"
-          className="text-5xl text-neon-green text-glow-green"
+          text={`${boss.name} DEFEATED`}
+          className="text-4xl text-neon-green text-glow-green text-center"
         />
         <p className="text-text text-sm tracking-widest">
           Cleared {challengeIdx + 1} challenge{challengeIdx !== 0 ? "s" : ""} in{" "}
@@ -195,7 +205,7 @@ export default function PlayPage() {
             className="text-lg text-neon-cyan text-glow-cyan"
           />
           <span className="text-text-dim text-xs font-hud tracking-widest">
-            CHALLENGE {challengeIdx + 1} / {TOTAL_CHALLENGES}
+            {boss.languageLabel} · CHALLENGE {challengeIdx + 1} / {totalChallenges}
           </span>
         </div>
         <div className="flex items-center gap-4">
@@ -252,7 +262,7 @@ export default function PlayPage() {
           <div className="p-4 mt-auto">
             <div className="grid grid-cols-2 gap-1 text-xs">
               <div className="text-text-muted">Damage / hit</div>
-              <div className="text-neon-green font-hud text-right">+{DAMAGE_PER_HIT}</div>
+              <div className="text-neon-green font-hud text-right">+{damagePerHit}</div>
               <div className="text-text-muted">Penalty / miss</div>
               <div className="text-neon-magenta font-hud text-right">−{DAMAGE_ON_WRONG}</div>
             </div>
@@ -345,7 +355,8 @@ export default function PlayPage() {
           {rightTab === "boss" ? (
             <div className="flex flex-col gap-3 p-3 flex-1">
               <BossPanel
-                name={BOSS.name}
+                name={boss.name}
+                imageSrc={boss.imageSrc}
                 hp={bossHp}
                 maxHp={BOSS_MAX_HP}
                 className="flex-1 min-h-[400px]"
