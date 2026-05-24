@@ -2,14 +2,23 @@
 
 import { motion } from "framer-motion";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { GlitchText } from "@/components/effects/GlitchText";
 import { BossPanel } from "@/components/game/BossPanel";
+import { BossTaunt } from "@/components/game/BossTaunt";
 import { CodeExplanation } from "@/components/game/CodeExplanation";
 import { Editor } from "@/components/game/Editor";
 import { MusicPlayer } from "@/components/game/MusicPlayer";
+import { pickTaunt, type TauntTrigger } from "@/lib/boss-taunts";
 import { getBossForClass } from "@/lib/challenges/list";
 import { runJsInSandbox } from "@/lib/js-runner";
+import {
+  recordBossDefeat,
+  recordRunLost,
+  recordRunStart,
+  recordSubmit,
+} from "@/lib/profile/stats";
 import type { ExecuteResponse, TestResult } from "@/lib/types";
 
 const PLAYER_MAX_HP = 100;
@@ -92,6 +101,8 @@ function PlayPageInner() {
   const totalChallenges = boss.challenges.length;
   const damagePerHit = Math.ceil(BOSS_MAX_HP / totalChallenges);
 
+  const { username } = useAuth();
+
   const [challengeIdx, setChallengeIdx] = useState(0);
   const challenge = boss.challenges[challengeIdx];
   const [code, setCode] = useState(challenge.starterCode);
@@ -104,6 +115,23 @@ function PlayPageInner() {
   const [showHint, setShowHint] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
   const [rightTab, setRightTab] = useState<RightTab>("boss");
+  const [taunt, setTaunt] = useState<string | null>(null);
+  const [tauntKey, setTauntKey] = useState(0);
+
+  function showTaunt(trigger: TauntTrigger) {
+    const next = pickTaunt(boss.id, trigger);
+    if (next) {
+      setTaunt(next);
+      setTauntKey((k) => k + 1);
+    }
+  }
+
+  // Intro taunt + record run start (once per mount).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally fires only on mount
+  useEffect(() => {
+    showTaunt("intro");
+    if (username && classId) recordRunStart(username, classId);
+  }, []);
 
   async function handleSubmit() {
     if (state === "running" || phase !== "fighting") return;
@@ -119,12 +147,21 @@ function PlayPageInner() {
     };
     setResponse(data);
     setAttempts((a) => a + 1);
+    if (username) recordSubmit(username, data.passed);
 
     if (data.passed) {
       const newBossHp = Math.max(0, bossHp - damagePerHit);
       setBossHp(newBossHp);
 
-      // Advance to next challenge after a beat
+      if (newBossHp <= 0) {
+        showTaunt("victory");
+        if (username) recordBossDefeat(username, boss.id);
+      } else if (newBossHp / BOSS_MAX_HP < 0.3) {
+        showTaunt("lowHp");
+      } else {
+        showTaunt("hit");
+      }
+
       setTimeout(() => {
         if (newBossHp <= 0) {
           setPhase("won");
@@ -143,7 +180,13 @@ function PlayPageInner() {
       setTimeout(() => setScreenShake(false), 400);
       const newPlayerHp = Math.max(0, playerHp - DAMAGE_ON_WRONG);
       setPlayerHp(newPlayerHp);
-      if (newPlayerHp <= 0) setPhase("lost");
+      if (newPlayerHp <= 0) {
+        showTaunt("defeat");
+        if (username) recordRunLost(username);
+        setPhase("lost");
+      } else {
+        showTaunt("miss");
+      }
     }
 
     setState("idle");
@@ -354,12 +397,15 @@ function PlayPageInner() {
 
           {rightTab === "boss" ? (
             <div className="flex flex-col gap-3 p-3 flex-1">
+              <div className="min-h-[44px]">
+                <BossTaunt text={taunt} triggerKey={tauntKey} />
+              </div>
               <BossPanel
                 name={boss.name}
                 imageSrc={boss.imageSrc}
                 hp={bossHp}
                 maxHp={BOSS_MAX_HP}
-                className="flex-1 min-h-[400px]"
+                className="flex-1 min-h-[380px]"
               />
               <PlayerHPBar hp={playerHp} max={PLAYER_MAX_HP} />
             </div>

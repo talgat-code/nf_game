@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, VT323 } from "next/font/google";
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import { ProfileButton } from "@/components/auth/ProfileButton";
 import { CRTOverlay } from "@/components/effects/CRTOverlay";
 import { PostHogProvider } from "@/components/PostHogProvider";
 import "./globals.css";
@@ -32,8 +34,13 @@ export default function RootLayout({
         className={`${jetbrainsMono.variable} ${vt323.variable} crt-flicker bg-void text-text`}
       >
         <PostHogProvider>
-          <CRTOverlay />
-          {children}
+          <AuthProvider>
+            <CRTOverlay />
+            <div className="fixed top-4 right-4 z-40">
+              <ProfileButton />
+            </div>
+            {children}
+          </AuthProvider>
         </PostHogProvider>
       </body>
     </html>
