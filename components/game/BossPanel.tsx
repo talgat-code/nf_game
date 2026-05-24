@@ -24,7 +24,19 @@ export function BossPanel({
   const [animState, setAnimState] = useState<BossAnimState>("idle");
   const [damageNumbers, setDamageNumbers] = useState<{ id: number; value: number }[]>([]);
   const [prevHp, setPrevHp] = useState(hp);
-  const [imageError, setImageError] = useState(false);
+  const [imageStatus, setImageStatus] = useState<"loading" | "loaded" | "error">("loading");
+
+  // Probe image existence — avoids flash of broken-image alt text
+  useEffect(() => {
+    const probe = new window.Image();
+    probe.onload = () => setImageStatus("loaded");
+    probe.onerror = () => setImageStatus("error");
+    probe.src = imageSrc;
+    return () => {
+      probe.onload = null;
+      probe.onerror = null;
+    };
+  }, [imageSrc]);
 
   // Detect hp changes → trigger animation
   useEffect(() => {
@@ -107,18 +119,15 @@ export function BossPanel({
           }
           transition={{ duration: animState === "defeated" ? 1.5 : 0.5 }}
         >
-          {imageError ? (
-            <BossPlaceholder />
-          ) : (
-            // Plain img — no Next.js Image since we want it to fail gracefully
-            // and the file may not exist yet (user adds it)
-            // biome-ignore lint/performance/noImgElement: graceful fallback to placeholder
+          {imageStatus === "loaded" ? (
+            // biome-ignore lint/performance/noImgElement: needs runtime probe + placeholder fallback
             <img
               src={imageSrc}
               alt={name}
-              onError={() => setImageError(true)}
               className="max-h-[260px] w-auto object-contain drop-shadow-[0_0_20px_rgba(255,61,187,0.4)]"
             />
+          ) : (
+            <BossPlaceholder />
           )}
         </motion.div>
 
@@ -178,21 +187,37 @@ export function BossPanel({
   );
 }
 
-// ─── CSS-art fallback if image doesn't exist ─────────────────────────────────
+// ─── ASCII-art fallback if image doesn't exist ───────────────────────────────
+const WRAITH_ART = `
+        ╓▄▓▓▓▄╖
+      ╓▓▓▌  ▐▓▓╖
+    ╓▓▓▌  ◉◉  ▐▓▓╖
+   ╓▓▓▌  /||\\  ▐▓▓╖
+  ╓▓▓▌  /  ||  \\ ▐▓▓╖
+  ▓▓▌  ╔═══════╗ ▐▓▓
+   ▓▓▌ ║  null ║ ▐▓▓
+    ▓▓▌╚═══════╝▐▓▓
+     ▓▓▓░░░░░░▓▓▓
+      ╙▓▓▓▓▓▓▓▓╜
+       ║  ▓▓  ║
+       ╨      ╨
+`;
+
 function BossPlaceholder() {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 text-text-muted">
-      <div className="relative">
-        <div className="text-8xl text-neon-magenta opacity-70 text-glow-magenta select-none">
-          👁
-        </div>
-        <div className="absolute -inset-4 border-2 border-neon-magenta opacity-30 animate-pulse" />
-      </div>
-      <p className="text-neon-magenta text-xs font-hud tracking-widest text-glow-magenta">
-        [ ENTITY UNRENDERED ]
-      </p>
-      <p className="text-text-dim text-xs">
-        save image → public/sprites/null-pointer-wraith.png
+    <div className="flex flex-col items-center justify-center gap-3 px-4 py-2 text-text-muted">
+      <pre
+        className="text-neon-magenta font-mono text-[10px] leading-[1.1] text-glow-magenta select-none animate-pulse"
+        style={{ whiteSpace: "pre" }}
+      >
+        {WRAITH_ART}
+      </pre>
+      <p className="text-text-dim text-[10px] text-center max-w-[200px]">
+        Add boss art at
+        <br />
+        <span className="text-neon-cyan font-mono">
+          public/sprites/null-pointer-wraith.png
+        </span>
       </p>
     </div>
   );

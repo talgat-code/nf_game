@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Editor } from "@/components/game/Editor";
 import { BossPanel } from "@/components/game/BossPanel";
 import { GlitchText } from "@/components/effects/GlitchText";
+import { runJsInSandbox } from "@/lib/js-runner";
 import type { ExecuteResponse, TestResult } from "@/lib/types";
 
 // ─── Challenge definition ─────────────────────────────────────────────────────
@@ -115,38 +116,31 @@ export default function PlayPage() {
     setState("running");
     setResponse(null);
 
-    try {
-      const res = await fetch("/api/execute-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code,
-          language: "javascript",
-          testCases: CHALLENGE.testCases,
-        }),
-      });
-      const data: ExecuteResponse = await res.json();
-      setResponse(data);
-      setAttempts((a) => a + 1);
+    const sandboxResult = await runJsInSandbox(code, CHALLENGE.testCases);
+    const data: ExecuteResponse = {
+      passed: sandboxResult.ok && sandboxResult.results.every((r) => r.passed),
+      results: sandboxResult.results,
+      error: sandboxResult.error,
+      runtimeMs: sandboxResult.runtimeMs,
+    };
+    setResponse(data);
+    setAttempts((a) => a + 1);
 
-      if (data.passed) {
-        const newBossHp = Math.max(0, bossHp - DAMAGE_ON_BOSS);
-        setBossHp(newBossHp);
-        if (newBossHp <= 0) {
-          setTimeout(() => setPhase("won"), 2000);
-        }
-      } else {
-        setScreenShake(true);
-        setTimeout(() => setScreenShake(false), 400);
-        const newPlayerHp = Math.max(0, playerHp - DAMAGE_ON_WRONG);
-        setPlayerHp(newPlayerHp);
-        if (newPlayerHp <= 0) setPhase("lost");
+    if (data.passed) {
+      const newBossHp = Math.max(0, bossHp - DAMAGE_ON_BOSS);
+      setBossHp(newBossHp);
+      if (newBossHp <= 0) {
+        setTimeout(() => setPhase("won"), 2000);
       }
-    } catch {
-      setResponse({ passed: false, results: [], error: "Network error" });
-    } finally {
-      setState("idle");
+    } else {
+      setScreenShake(true);
+      setTimeout(() => setScreenShake(false), 400);
+      const newPlayerHp = Math.max(0, playerHp - DAMAGE_ON_WRONG);
+      setPlayerHp(newPlayerHp);
+      if (newPlayerHp <= 0) setPhase("lost");
     }
+
+    setState("idle");
   }
 
   // ─── Win screen ─────────────────────────────────────────────────────────────
